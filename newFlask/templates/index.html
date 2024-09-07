@@ -1,42 +1,101 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Index</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BS Social Media</title>
+  <link rel="stylesheet" href="static/css/main.css">
+  <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-    <h1>All Posts</h1>
-    <a href="{{ url_for('create') }}">Create New Post</a>
-    <a href="{{ url_for('liked_posts') }}">View Liked Posts</a>
-    <a href="{{ url_for('communities') }}">Communities</a> <!-- Добавьте ссылку на сообщества -->
-    <a href="{{ url_for('logout') }}">Logout</a>
-    <ul>
-        {% for post in posts %}
-            <div class="post">
-                <h3>{{ post.title }}</h3>
-                <p>{{ post.content }}</p>
-                {% if post.image_url %}
-                    <img src="{{ post.image_url }}" alt="Post Image" style="max-width: 300px;"/>
-                {% endif %}
-                <p>By User: {{ post.username }}</p>
-                <p>Created at: {{ post.created_at_str }}</p> <!-- Display post creation time -->
-                <p>Likes: {{ post.likes_count }}</p>
-
-                {% if post.id in liked_posts %}
-                    <form action="{{ url_for('like_post', post_id=post.id) }}" method="POST">
-                        <button type="submit">Unlike</button>
-                    </form>
-                {% else %}
-                    <form action="{{ url_for('like_post', post_id=post.id) }}" method="POST">
-                        <button type="submit">Like</button>
-                    </form>
-                {% endif %}
-                <a href="{{ url_for('comments', post_id=post.id) }}">Comments</a>
-            </div>
-        {% endfor %}
 
 
+<!-- Навигация -->
+<nav>
+  <div class="nav-left">
+      <img src="static/img/img.png" alt="Logo">
+      <input type="text" placeholder="Search">
+  </div>
+  <div class="nav-middle">
+      <a href="#" class="active"><i class="fas fa-home"><p>Home</p></i></a>
+      <a href="#"><i class="fas fa-calendar-week"></i> <p>Events</p></a>
+      <a href="{{ url_for('communities') }}"><i class="fas fa-briefcase"></i> <p>Community</p></a>
+      <a href="{{ url_for('create') }}"><i class="fas fa-star"></i> <p>Create post</p></a>
+  </div>
+  <div class="nav-right">
+      <div class="profile"></div>
+      <a href="{{ url_for('logout') }}"><i class="fas fa-cog"></i><p>Logout</p></a>
+  </div>
+</nav>
 
-    </ul>
+
+<!-- Контейнер -->
+<div class="container">
+  <!-- Middle Panel -->
+  <div class="middle-panel">
+      <!-- Истории пользователей -->
+      <div class="story-section">
+          <div class="story">
+              <img src="images/story1.jpg" alt="Story">
+              <div class="dp-container">
+                  <img src="images/dp1.jpg" alt="User">
+              </div>
+              <div class="name">Aziz Gabitov</div>
+          </div>
+          <div class="story create">
+              <div class="dp-image">
+                  <img src="images/create.jpg" alt="Create Story">
+              </div>
+              <div class="dp-container">
+                  <i class="fas fa-plus"></i>
+              </div>
+              <div class="name">Create Story</div>
+          </div>
+      </div>
+
+
+      <!-- All Posts Section -->
+      <h1>All Posts</h1>
+      <a href="{{ url_for('create') }}">Create New Post</a>
+      <a href="{{ url_for('liked_posts') }}">View Liked Posts</a>
+
+
+      <!-- Все посты -->
+      <ul>
+          {% for post in posts %}
+          <div class="post">
+              <div class="post-top">
+                  <div class="dp"><img src="{{ post.user_dp_url or 'images/default_dp.jpg' }}" alt="User"></div>
+                  <div class="post-info">
+                      <div class="name">{{ post.username }}</div>
+                      <div class="time">{{ post.created_at_str }}</div>
+                  </div>
+                  <i class="fas fa-ellipsis-h"></i>
+              </div>
+              <div class="post-content">
+                  <p>{{ post.text }}</p>
+                  {% if post.image_url %}
+                  <img src="{{ post.image_url }}" alt="Post Image" style="max-width: 300px;"/>
+                  {% endif %}
+              </div>
+              <div class="post-bottom">
+                   <form method="POST" action="{{ url_for('like_post', post_id=post.id) }}">
+                       <button type="submit" class="action">
+                           <i class="fas fa-thumbs-up"></i> Like ({{ post.likes_count }})
+                       </button>
+                   </form>
+                   <a href="{{ url_for('comments', post_id=post.id) }}" class="action">
+                       <i class="fas fa-comment"></i> Comment ({{ post.comment_count }})
+                   </a>
+                  <div class="action"><i class="fas fa-share"></i> Share</div>
+              </div>
+          </div>
+          {% endfor %}
+      </ul>
+  </div>
+</div>
+
+
 </body>
 </html>
