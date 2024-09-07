@@ -270,5 +270,147 @@ def logout():
     session.pop('user_id', None)
     return redirect('/login')
 
+
+
+
+
+
+
+
+@app.route('/create_community', methods=['GET', 'POST'])
+@login_required
+def create_community():
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        user_id = session['user_id']
+        username = session['username']
+        
+        # Create a new community document with a unique ID
+        community_ref = db.collection('communities').document()  # Auto-generate a unique ID
+        community_id = community_ref.id
+        community_ref.set({
+            'id': community_id,  # Explicitly add the community ID field
+            'name': name,
+            'description': description,
+            'members': [user_id]
+        })
+
+        # Add the community ID to the user's list
+        db.collection('users').document(user_id).collection('communities').add({
+            'community_id': community_id,
+            'username': username
+        })
+        
+        return redirect(url_for('communities'))
+    
+    return render_template('create_community.html')
+
+
+@app.route('/join_community/<community_id>', methods=['POST'])
+@login_required
+def join_community(community_id):
+    user_id = session['user_id']
+    username = session['username']
+    
+    # Add user to the community
+    community_ref = db.collection('communities').document(community_id)
+    community_ref.update({
+        'members': firestore.ArrayUnion([user_id])
+    })
+
+    # Add the community to the user's list
+    db.collection('users').document(user_id).collection('communities').add({
+        'community_id': community_id,
+        'username': username
+    })
+    
+    return redirect(url_for('communities'))
+
+
+@app.route('/communities')
+@login_required
+def communities():
+    user_id = session['user_id']
+    
+    communities_ref = db.collection('communities').stream()
+    communities_list = [community.to_dict() for community in communities_ref]
+
+    user_communities_ref = db.collection('users').document(user_id).collection('communities').stream()
+    user_communities = [doc.to_dict()['community_id'] for doc in user_communities_ref]
+
+    return render_template('communities.html', communities=communities_list, user_communities=user_communities)
+
+
+
+
+
+
+
+@app.route('/community_chat/<community_id>', methods=['GET', 'POST'])
+@login_required
+def community_chat(community_id):
+    user_id = session['user_id']
+    
+    # Fetch community members
+    community_ref = db.collection('communities').document(community_id).get()
+    community_data = community_ref.to_dict()
+    member_ids = community_data.get('members', [])
+    
+    # Check if the user is a member
+    is_member = user_id in member_ids
+    
+    if request.method == 'POST':
+        if is_member:
+            message = request.form['message']
+            username = session['username']
+            
+            # Add the message to the chat
+            db.collection('communities').document(community_id).collection('chat').add({
+                'user_id': user_id,
+                'username': username,
+                'message': message,
+                'timestamp': firestore.SERVER_TIMESTAMP
+            })
+        else:
+            flash("You must be a member of the community to post messages.", "warning")
+        
+        return redirect(url_for('community_chat', community_id=community_id))
+    
+    # Fetch chat messages
+    chat_ref = db.collection('communities').document(community_id).collection('chat').order_by('timestamp').stream()
+    chat_messages = [msg.to_dict() for msg in chat_ref]
+
+    # Fetch community members
+    members = []
+    for member_id in member_ids:
+        user_ref = db.collection('users').document(member_id).get()
+        user_data = user_ref.to_dict()
+        members.append({
+            'username': user_data.get('username', 'Unknown User')
+        })
+
+    return render_template('community_chat.html', community_id=community_id, chat_messages=chat_messages, community_members=members, is_member=is_member)
+
+
+@app.route('/leave_community/<community_id>', methods=['POST'])
+@login_required
+def leave_community(community_id):
+    user_id = session['user_id']
+    
+    # Remove user from the community
+    community_ref = db.collection('communities').document(community_id)
+    community_ref.update({
+        'members': firestore.ArrayRemove([user_id])
+    })
+
+    # Remove the community from the user's list
+    user_communities_ref = db.collection('users').document(user_id).collection('communities').where('community_id', '==', community_id).stream()
+    for doc in user_communities_ref:
+        doc.reference.delete()
+
+    return redirect(url_for('communities'))
+
 if __name__ == '__main__':
     app.run(debug=True)
+

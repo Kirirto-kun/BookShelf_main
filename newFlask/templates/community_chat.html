@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Chat</title>
+    <style>
+        /* Basic styles for chat */
+        .container {
+            display: flex;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: auto;
+        }
+        .chat-container {
+            width: 70%;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: scroll;
+        }
+        .chat-message {
+            margin-bottom: 10px;
+        }
+        .chat-message .username {
+            font-weight: bold;
+        }
+        .members-container {
+            width: 25%;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: scroll;
+        }
+        .members-container ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .members-container li {
+            margin-bottom: 10px;
+        }
+        .disabled {
+            background-color: #f0f0f0;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chat for Community {{ community_id }}</h1>
+    
+    <div class="container">
+        <div class="chat-container">
+            {% for message in chat_messages %}
+                <div class="chat-message">
+                    <span class="username">{{ message.username }}:</span>
+                    <span class="message">{{ message.message }}</span>
+                    <span class="timestamp">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="members-container">
+            <h2>Members</h2>
+            <ul>
+                {% for member in community_members %}
+                    <li>{{ member.username }}</li>
+                {% endfor %}
+            </ul>
+            <form action="{{ url_for('leave_community', community_id=community_id) }}" method="POST">
+                <button type="submit">Leave Community</button>
+            </form>
+        </div>
+    </div>
+
+    {% if is_member %}
+        <form action="{{ url_for('community_chat', community_id=community_id) }}" method="post">
+            <textarea name="message" rows="4" cols="50" placeholder="Type your message..."></textarea><br>
+            <input type="submit" value="Send">
+        </form>
+    {% else %}
+        <p>You must be a member of the community to post messages.</p>
+    {% endif %}
+
+    <a href="{{ url_for('communities') }}">Back to Communities</a>
+</body>
+</html>
