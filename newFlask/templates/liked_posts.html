@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Liked Posts</title>
+</head>
+<body>
+    <h1>Liked Posts</h1>
+    <a href="{{ url_for('index') }}">Back to All Posts</a>
+    <a href="{{ url_for('create') }}">Create New Post</a>
+    <a href="{{ url_for('logout') }}">Logout</a>
+    <ul>
+        {% for post in posts %}
+            <li>
+                <h2>{{ post.title }}</h2>
+                <p>{{ post.text }}</p>
+                {% if post.image_url %}
+                    <img src="{{ post.image_url }}" alt="Post Image" style="max-width: 300px;"/>
+                {% endif %}
+                <p>By User: {{ post.username }}</p>
+                <p>Created at: {{ post.created_at_str }}</p>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -5,11 +5,30 @@
 {% endblock %}
 
 {% block content %}
-    <h1> Добавление записи </h1>
+    <h1>Добавление записи</h1>
 
-    <form method="post" class = "form-control">
-        <input type = "text" name = "title" placeholder="Введите заголовок статьи" class = "form-control"><br>
-        <input type = "text" name = "text" placeholder="Введите текст статьи" class = "form-control"><br>
+    <form method="post" enctype="multipart/form-data" class="form-control">
+        <input type="text" name="title" placeholder="Введите заголовок статьи" class="form-control"><br>
+        <textarea name="text" placeholder="Введите текст статьи" class="form-control"></textarea><br>
+        <input type="file" name="image" class="form-control"><br>
         <button class="btn btn--success" type="submit">Добавить</button>
     </form>
+
+    <h2>Мои посты</h2>
+    <ul>
+        {% for post in posts %}
+        <div>
+            <h2>{{ post.title }}</h2>
+            <p>{{ post.text }}</p>
+            {% if post.image_url %}
+                <img src="{{ post.image_url }}" alt="Image" style="max-width: 300px;">
+            {% endif %}
+            <p>Created at: {{ post.created_at_str }}</p> <!-- Отображаем время создания -->
+            <form method="POST" action="{{ url_for('delete_post', post_id=post.post_id) }}">
+                <button type="submit">Удалить</button>
+            </form>
+            <a href="{{ url_for('comments', post_id=post.post_id) }}">Комментарии</a>
+        </div>
+    {% endfor %}
+    </ul>
 {% endblock %}
