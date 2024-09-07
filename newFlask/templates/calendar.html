@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar</title>
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.5/index.css' rel='stylesheet' />
+    <style>
+        #calendar {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .event-details {
+            display: none;
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            width: 300px;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .event-details h3 {
+            margin: 0 0 10px;
+        }
+        .event-details button {
+            display: block;
+            margin: 10px 0 0;
+            padding: 10px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .event-details button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calendar</h1>
+    <div id="calendar"></div>
+
+    <!-- Modal for event details -->
+    <div id="event-details" class="event-details">
+        <h3 id="event-title"></h3>
+        <p><strong>Location:</strong> <span id="event-location"></span></p>
+        <p><strong>Time:</strong> <span id="event-time"></span></p>
+        <p><strong>Description:</strong> <span id="event-description"></span></p>
+        <button onclick="closeEventDetails()">Close</button>
+    </div>
+
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.5/index.global.min.js'></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const events = {{ events | tojson }};
+            
+            const calendarEl = document.getElementById('calendar');
+            const eventDetailsEl = document.getElementById('event-details');
+            const eventTitleEl = document.getElementById('event-title');
+            const eventLocationEl = document.getElementById('event-location');
+            const eventTimeEl = document.getElementById('event-time');
+            const eventDescriptionEl = document.getElementById('event-description');
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: events.map(event => ({
+                    title: event.event_name,
+                    start: `${event.date}T${event.time}`,
+                    color: event.colour, // Используем цвет события
+                    extendedProps: {
+                        location: event.location,
+                        description: event.description,
+                        time: event.time
+                    }
+                })),
+                eventClick: function(info) {
+                    // Открываем модальное окно с деталями события
+                    eventTitleEl.textContent = info.event.title;
+                    eventLocationEl.textContent = info.event.extendedProps.location;
+                    eventTimeEl.textContent = info.event.extendedProps.time;
+                    eventDescriptionEl.textContent = info.event.extendedProps.description;
+                    eventDetailsEl.style.display = 'block';
+                }
+            });
+
+            calendar.render();
+        });
+
+        function closeEventDetails() {
+            document.getElementById('event-details').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

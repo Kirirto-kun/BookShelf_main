@@ -49,8 +49,48 @@ def index():
     return render_template('index.html', posts=posts_list, liked_posts=liked_post_ids)
 
 
+@app.route("/create_event", methods=["GET", "POST"])
+@login_required
+def create_event():
+    if request.method == "POST":
+        # Получаем данные из формы
+        event_name = request.form.get("event_name")
+        location = request.form.get("location")
+        colour = request.form.get("colour")
+        description = request.form.get("description")
+        date = request.form.get("date")
+        time = request.form.get("time")
+        
+        # Создаем документ в коллекции 'events'
+        events_ref = db.collection('events')
+        events_ref.add({
+            'event_name': event_name,
+            'location': location,
+            'colour': colour,
+            'description': description,
+            'date': date,
+            'time': time
+        })
 
+        flash("Event created successfully!")
+        return redirect(url_for('calendar'))
+    
+    return render_template('create_event.html')
 
+@app.route("/calendar")
+@login_required
+def calendar():
+    # Получаем все события
+    events_ref = db.collection('events')
+    events = events_ref.stream()
+    events_list = []
+
+    for event in events:
+        event_data = event.to_dict()
+        event_data['id'] = event.id
+        events_list.append(event_data)
+
+    return render_template('calendar.html', events=events_list)
 
 
 @app.route('/liked_posts')
@@ -75,13 +115,7 @@ def liked_posts():
     return render_template('liked_posts.html', posts=posts_list)
 
 
-@app.route("/calendar")
-def calendar():
-    return render_template('calendar/calendar.html')
 
-@app.route("/CreateEvent")
-def CreateEvent():
-    return render_template('calendar/CreateEvent.html')
 
 @app.route("/about")
 def about():
@@ -260,55 +294,69 @@ def comments(post_id):
 
     return render_template('comments.html', post=post_data, comments=comments_list, post_id=post_id)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        
-        # Search for user by username
-        users_ref = db.collection('users').where('username', '==', username).stream()
-        
-        user = None
-        user_id = None
-        
-        # Get the first document found
-        for doc in users_ref:
-            user = doc.to_dict()
-            user_id = doc.id  # Get the document ID
-            break
-        
-        if user and check_password_hash(user['password'], password):
-            session['user_id'] = user_id
-            session['username'] = user['username']  # Store username in session
-            return redirect('/index')
-        else:
-            flash('Invalid username or password')
-
-    return render_template('login.html')
-
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        full_name = request.form['full_name']
+        phone_number = request.form['phone_number']
+        rank = request.form['rank']
+        pfp_url = request.form['pfp_url']
+        email = request.form['email']
         username = request.form['username']
         password = request.form['password']
+        gender = request.form.get('gender') == 'true'
+        role = request.form.get('role', 'user')
         hashed_password = generate_password_hash(password)
 
         # Create a new document with a unique ID
         user_ref = db.collection('users').document()
         user_ref.set({
+            'full_name': full_name,
+            'phone_number': phone_number,
+            'rank': rank,
+            'pfp_url': pfp_url,
+            'email': email,
             'username': username,
             'password': hashed_password,
+            'gender': gender,
+            'role': role,
             'userId': user_ref.id
         })
 
         # Store userId and username in session
         session['user_id'] = user_ref.id
-        session['username'] = username  # Store username in session
+        session['username'] = username
 
         return redirect('/index')
     
     return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        # Fetch user from Firestore
+        users_ref = db.collection('users').where('username', '==', username).limit(1).get()
+        if users_ref:
+            user_doc = users_ref[0]
+            user_data = user_doc.to_dict()
+            
+            
+            
+            if check_password_hash(user_data['password'], password):
+                # Store userId, username, and email in session
+                session['user_id'] = user_data['userId']
+                session['username'] = username
+                return redirect('/index')
+            else:
+                return 'Invalid credentials or missing email field', 401
+        else:
+            return 'User not found', 404
+    
+    return render_template('login.html')
+
 
 @app.route('/logout')
 def logout():

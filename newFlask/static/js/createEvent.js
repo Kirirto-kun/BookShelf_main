@@ -1,190 +1,123 @@
-let EventBaseURL = `https://my-cal-com-backend.vercel.app`
+let spinner = document.getElementById('spinner');
 
-//! IF USER NOT PRESENT ---> 
-let UserEmail = localStorage.getItem("useremail");
+// Обработчик отправки формы
+document.getElementById('EventForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
 
-if (!UserEmail) {
-  swal("Please Login First!", "You need to login before adding any events..", "info");
-  setTimeout(() => {
-    window.location.href = "loginSignup.html"
-  }, 2000);
-}
-//! ---------------------->
+    let eventName = document.getElementById('event_name');
+    let location = document.getElementById('event_option');
+    let color = document.getElementById('event_color');
+    let description = document.getElementById('event_description');
+    let date = document.getElementById('startDate');
+    let time = document.getElementById('starttime');
 
-let fullnameX = UserEmail.split("@")[0];
-let UserName = localStorage.getItem("username");
-
-UserShow3.innerHTML = fullnameX + `<p style="font-size: 12px;">(Logout)</p>`;
-// console.log(UserEmail);//!-->Consoling current user Email
-
-var navbar = document.getElementById("event_nav");
-var sticky = navbar.offsetTop;
-
-window.onscroll = function () {
-  if (window.pageYOffset >= sticky) {
-    navbar.classList.add("sticky");
-  } else {
-    navbar.classList.remove("sticky");
-  }
-};
-
-
-let EventForm = document.getElementById("EventForm")
-
-EventForm.addEventListener("submit", (e) => {
-  e.preventDefault()
-  let title = EventForm.event_name.value
-  let place = EventForm.event_option.value
-  let startTime = EventForm.starttime.value
-  let color = EventForm.event_color.value
-  let endTime = EventForm.endtime.value
-  let startDate = EventForm.startDate.value
-  let endDate = EventForm.endDate.value
-  let event_link = `${UserName.split(" ").join("-")}/${EventForm.event_link.value.split(" ").join("-")}`
-  let description = EventForm.event_description.value
-  let createdOn = new Date().toISOString().split(".")[0]
-
-  let start = startDate + "T" + startTime + ":00"
-  let end = endDate + "T" + endTime + ":00"
-
-  let startValue = +start.split(/\T|\-|\:/).join("")
-  let endValue = +end.split(/\T|\-|\:/).join("")
-  let createValue = +createdOn.split(/\T|\-|\:/).join("")
-
-  if (startTime >= endTime && endDate <= startDate) {
-    swal("Event Start time cannot\n be after endtime", "Please select any other time", "info");
-    return
-  }
-  if (startDate > endDate) {
-    swal("Start date cannot\n be after End Date", "Please choose correct date", "info");
-    return
-  }
-  if (startValue < createValue) {
-    swal("Event cannot be created on any past date!", "Please select any other date", "warning");
-    return
-  }
-  let event = { userEmail: UserEmail, title, place, start, color, end, event_link, description, createdOn }
-  console.log(event);
-  CreateEvent(event)
-})
-
-
-
-async function CreateEvent(event) {
-  try {
-    let response = await fetch(`${EventBaseURL}/events/newevent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        UserEmail: UserEmail,
-      },
-      body: JSON.stringify(event)
-    })
-    let Event = await response.json();
-    if (Event.Created) {
-      swal("Event Created!", "Your Event has been Scheduled.", "success");
-      setTimeout(() => {
-
-        window.location.href = "./Dashboard.html";
-      }, 2000);
-      return;
-    } else {
-      let overLappTitle = Event.OverlappingEvent.title
-      let overLapStart = Event.OverlappingEvent.start
-      let overLapEnd = Event.OverlappingEvent.end
-      swal("Event Cannot Be Created Created!", `Over-Lapping Event Name :-
-      ${overLappTitle} 
-      Starts: ${overLapStart}
-      Ends: ${overLapEnd}\n 
-      Please Readjust date & time to create this event`, "warning");
+    // Проверка на null
+    if (!eventName || !location || !color || !description || !date || !time) {
+        alert("Некоторые поля формы отсутствуют.");
+        return;
     }
-  } catch (error) {
-    swal("Server Error", `${error}`, "info");
-    console.log(error)
-  }
-}
 
+    let newEvent = {
+        'Event Name': eventName.value,
+        'Location': location.value,
+        'Colour': color.value,
+        'Description': description.value,
+        'Date': date.value,
+        'Time': time.value
+    };
 
+    try {
+        let response = await fetch('/events/add', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newEvent)
+        });
 
-const cancelbutton = document.querySelectorAll(".cancelbutton");
-for (let i = 0; i < cancelbutton.length; i++) {
-  cancelbutton[i].addEventListener("click", async () => {
-    spinner.style.display = "none"; //!Spinner
-    swal({
-      title: "Cancel Creating Event?",
-      text: "",
-      icon: "warning",
-      buttons: true,
-      dangerMode: true,
-    })
-      .then((willDelete) => {
-        if (willDelete) {
-          window.location.assign("./Dashboard.html");
+        if (response.ok) {
+            alert("Event added successfully");
+            window.location.href = "/calendar";  // Redirect to calendar page
         } else {
-          null
+            let errorData = await response.json();
+            alert(`Failed to add event: ${errorData.error}`);
         }
-      });
+    } catch (err) {
+        console.log("Error adding event:", err);
+        alert("Error adding event");
+    }
+});
 
-  });
+// Функция для получения всех событий
+async function FetchAllEvents() {
+    if (spinner) spinner.style.display = "flex";  // Показать индикатор загрузки
+
+    try {
+        let response = await fetch('/events', {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (response.ok) {
+            let data = await response.json();
+            RenderCalendar(data.events);
+        } else {
+            console.error('Ошибка при загрузке событий');
+        }
+    } catch (err) {
+        console.log(err);
+        RenderCalendar(DummyEvents);  // Показать тестовые события в случае ошибки
+    } finally {
+        if (spinner) spinner.style.display = "none";  // Скрыть индикатор загрузки
+    }
 }
 
+// Запуск функции для получения всех событий при загрузке страницы
+FetchAllEvents();
 
-//? <!----------------------------------------------- < Event Instantaneous Date register> ----------------------------------------------->
+// Функция для отрисовки событий на календаре
+function RenderCalendar(events) {
+    if (spinner) spinner.style.display = "flex";  // Показать индикатор загрузки
 
-EventForm.event_name.addEventListener("input", (e) => {
+    events = events.map(event => ({
+        title: event['Event Name'],
+        start: `${event.Date}T${event.Time}`,
+        description: event.Description,
+        color: event.Colour
+    }));
 
+    let calendarEl = document.getElementById('calendar');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: events,
+        eventClick: function(info) {
+            alert(`Description: ${info.event.extendedProps.description}`);
+        }
+    });
 
-  EventForm.event_link.value = e.target.value.split(" ").join("-");
-  let links = document.getElementById("links");
-  showname.innerText = EventForm.event_link.value
-  let createdOn = new Date().toISOString().split(".")[0].split("T")[0]
+    calendar.render();
+    if (spinner) spinner.style.display = "none";  // Скрыть индикатор загрузки после отрисовки
+}
 
-  let link = `mycal.com/${UserName}/${e.target.value}`;
-  links.innerText = link
-  showlinks.innerText = link
-  showcreatedon.innerText = createdOn
-});
-EventForm.event_option.addEventListener("change", (e) => {
-  showlocation.innerText = e.target.value
-})
-EventForm.starttime.addEventListener("change", (e) => {
-  showstarttime.innerText = e.target.value
-})
-EventForm.event_color.addEventListener("change", (e) => {
-  showcolor.innerText = e.target.value
-})
-EventForm.endtime.addEventListener("change", (e) => {
-  showendtime.innerText = e.target.value
-})
-EventForm.startDate.addEventListener("change", (e) => {
-  showstartdate.innerText = e.target.value
-})
-EventForm.endDate.addEventListener("change", (e) => {
-  showenddate.innerText = e.target.value
-})
-EventForm.event_link.addEventListener("input", (e) => {
-  let link = `mycal.com/${UserName}/${e.target.value}`;
-  links.innerText = link
-  showlinks.innerText = link
-})
-EventForm.event_description.addEventListener("input", (e) => {
-  showdesp.innerText = e.target.value
-})
+// Проверка и отображение email пользователя
+let UserEmail = localStorage.getItem("username");
+if (UserEmail) {
+    let fullnameX = UserEmail.split("@")[0];
+    let UserShow3 = document.getElementById("UserShow3");
+    UserShow3.innerHTML = fullnameX;
+}
 
-
-
-
-//? <!----------------------------------------------- < Logout> ----------------------------------------------->
-
+// Функция выхода из системы
 let Logout = document.getElementsByClassName("namecircle")[0];
-Logout.addEventListener("click", () => {
-  swal("Logging Out..", "", "info");
-  localStorage.clear();
-  setTimeout(() => {
-    window.location.href = "./index.html";
-  }, 1000);
-});
-let backbtn = document.querySelector("#event_nav > div > div:nth-child(1) > p");
-backbtn.addEventListener("click", () => {
-  window.location.href = "Dashboard.html";
-});
+if (Logout) {
+    Logout.addEventListener("click", () => {
+        swal("Logging Out..", "", "info");
+        localStorage.clear();
+        setTimeout(() => {
+            window.location.href = "./index.html";
+        }, 1000);
+    });
+}
