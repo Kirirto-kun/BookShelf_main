@@ -28,24 +28,26 @@ def login_required(f):
 @app.route("/index")
 @login_required
 def index():
-    # Fetch posts and sort them by 'created_at' in descending order
-    posts_ref = db.collection('posts').order_by('created_at', direction=firestore.Query.DESCENDING)
+    user_id = session['user_id']
+
+    # Получаем все посты
+    posts_ref = db.collection('posts')
     posts = posts_ref.stream()
-    
-    # Prepare the list of posts with formatted 'created_at' and likes count
     posts_list = []
+
     for post in posts:
         post_data = post.to_dict()
-        post_data['id'] = post.id  # Include post ID
-        post_data['created_at_str'] = post_data['created_at'].strftime('%Y-%m-%d %H:%M:%S') if post_data.get('created_at') else 'N/A'
-        post_data['likes_count'] = post_data.get('likes_count', 0)  # Get like count, default to 0
+        post_data['id'] = post.id
+        post_data['created_at_str'] = post_data['created_at'].strftime('%Y-%m-%d %H:%M:%S') if post_data.get('created_at') else '2024-09-07 09:18:13'
         posts_list.append(post_data)
-    
-    # Fetch liked posts for the current user
-    liked_posts_ref = db.collection('likes').where('user_id', '==', session['user_id']).stream()
-    liked_post_ids = [like.to_dict()['post_id'] for like in liked_posts_ref]
+
+    # Получаем лайки текущего пользователя
+    likes_ref = db.collection('likes').where('user_id', '==', user_id)
+    likes = likes_ref.stream()
+    liked_post_ids = [like.to_dict()['post_id'] for like in likes]
 
     return render_template('index.html', posts=posts_list, liked_posts=liked_post_ids)
+
 
 
 
@@ -148,31 +150,68 @@ def delete_post(post_id):
     return redirect('/create')
 
 
+@app.route('/toggle_like/<post_id>', methods=['POST'])
+@login_required
+def toggle_like(post_id):
+    user_id = session['user_id']
+    
+    # Проверяем, поставил ли пользователь лайк этому посту
+    like_ref = db.collection('likes').where('post_id', '==', post_id).where('user_id', '==', user_id).stream()
+    liked = any(like_ref)  # Если есть результат, значит лайк уже был
+    
+    post_ref = db.collection('posts').document(post_id)
+    
+    if liked:
+        # Если лайк уже поставлен, удаляем его
+        for doc in like_ref:
+            db.collection('likes').document(doc.id).delete()
+        
+        # Уменьшаем количество лайков на 1
+        post_ref.update({
+            'likes_count': firestore.Increment(-1)
+        })
+    else:
+        # Если лайк не поставлен, добавляем его
+        db.collection('likes').add({
+            'post_id': post_id,
+            'user_id': user_id
+        })
+
+        # Увеличиваем количество лайков на 1
+        post_ref.update({
+            'likes_count': firestore.Increment(1)
+        })
+    
+    return redirect(url_for('index'))
+
 @app.route('/like/<post_id>', methods=['POST'])
 @login_required
 def like_post(post_id):
     user_id = session['user_id']
     
-    # Check if the user has already liked this post
-    like_ref = db.collection('likes').where('post_id', '==', post_id).where('user_id', '==', user_id).stream()
-    if any(like_ref):
-        flash('You have already liked this post', 'warning')
-        return redirect(url_for('index'))
+    # Проверяем, поставил ли пользователь лайк
+    like_ref = db.collection('likes').where('post_id', '==', post_id).where('user_id', '==', user_id).limit(1)
+    existing_like = list(like_ref.stream())
 
-    # Add like to the 'likes' collection
-    db.collection('likes').add({
-        'post_id': post_id,
-        'user_id': user_id
-    })
-
-    # Increment the like count for the post
     post_ref = db.collection('posts').document(post_id)
-    post_ref.update({
-        'likes_count': firestore.Increment(1)  # Increment like count by 1
-    })
+
+    if existing_like:
+        # Если лайк уже есть, удаляем его и уменьшаем счетчик лайков
+        existing_like[0].reference.delete()
+        post_ref.update({
+            'likes_count': firestore.Increment(-1)
+        })
+    else:
+        # Если лайка нет, добавляем его и увеличиваем счетчик лайков
+        db.collection('likes').add({
+            'post_id': post_id,
+            'user_id': user_id
+        })
+        post_ref.update({
+            'likes_count': firestore.Increment(1)
+        })
 
     return redirect(url_for('index'))
-
 
 
 

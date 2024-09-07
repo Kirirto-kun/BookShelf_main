@@ -12,27 +12,31 @@
     <a href="{{ url_for('logout') }}">Logout</a>
     <ul>
         {% for post in posts %}
-            <li>
-                <h2>{{ post.title }}</h2>
-                <p>{{ post.text }}</p>
+            <div class="post">
+                <h3>{{ post.title }}</h3>
+                <p>{{ post.content }}</p>
                 {% if post.image_url %}
                     <img src="{{ post.image_url }}" alt="Post Image" style="max-width: 300px;"/>
                 {% endif %}
                 <p>By User: {{ post.username }}</p>
                 <p>Created at: {{ post.created_at_str }}</p> <!-- Display post creation time -->
-                <p>Likes: {{ post.likes }}</p>
-                <!-- Link to the comments page for this post -->
-                <a href="{{ url_for('comments', post_id=post.id) }}">Comments</a>
-                <!-- Like button -->
-                {% if post.id not in liked_posts %}
-                    <form method="POST" action="{{ url_for('like_post', post_id=post.id) }}">
-                        <button type="submit">Like</button>
+                <p>Likes: {{ post.likes_count }}</p>
+
+                {% if post.id in liked_posts %}
+                    <form action="{{ url_for('like_post', post_id=post.id) }}" method="POST">
+                        <button type="submit">Unlike</button>
                     </form>
                 {% else %}
-                    <button disabled>Liked</button>
+                    <form action="{{ url_for('like_post', post_id=post.id) }}" method="POST">
+                        <button type="submit">Like</button>
+                    </form>
                 {% endif %}
-            </li>
+                <a href="{{ url_for('comments', post_id=post.id) }}">Comments</a>
+            </div>
         {% endfor %}
+
+
+
     </ul>
 </body>
 </html>
