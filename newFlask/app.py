@@ -75,7 +75,13 @@ def liked_posts():
     return render_template('liked_posts.html', posts=posts_list)
 
 
+@app.route("/calendar")
+def calendar():
+    return render_template('calendar/calendar.html')
 
+@app.route("/CreateEvent")
+def CreateEvent():
+    return render_template('calendar/CreateEvent.html')
 
 @app.route("/about")
 def about():

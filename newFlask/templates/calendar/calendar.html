@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyCal:Caledar</title>
+    <link rel="icon" href="./Images/product/icon_mycal.png" />
+    <link rel="stylesheet" href="static/css/calendar.css" />
+    <script src="static/js/calendar.js" defer></script>
+  </head>
+  <body>
+    <div id="spinner">
+      <img style="width: 70px" src="Images/spinner.gif" alt="" />
+    </div>
+
+      <hr style="border: 1px solid rgba(128, 128, 128, 0.158)" />
+
+          <a href="CreateEvent">
+            <p id="Create">+ Create</p>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!--!--------------------------------------------- Main Body ----------------------------------------------->
+    <main>
+      <section id="Home">
+        <div class="CalendarHold">
+          <div id="calendar"></div>
+        </div>
+      </section>
+      <section>
+        <center><h1>Mark your events on your calendar.</h1></center>
+      </section>
+    </main>
+    <!--!--------------------------------------------- Footer ----------------------------------------------->
+    <footer></footer>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.6/index.global.min.js"></script>
+  </body>
+</html>
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
