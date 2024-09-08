@@ -1,36 +1,36 @@
 .swal-button {
   background-color: #0069ff !important;
-}
-.swal-button:hover {
+ }
+ .swal-button:hover {
   background-color: #1d79bb !important;
-}
-.swal-modal * {
+ }
+ .swal-modal * {
   filter: saturate(1) !important;
-}
-.swal-title {
+ }
+ .swal-title {
   color: black !important;
   font-weight: 500 !important;
-}
-.swal-button {
+ }
+ .swal-button {
   border-radius: 2px !important;
-}
-input {
+ }
+ input {
   padding: 10px;
-}
-#spaceNav {
+ }
+ #spaceNav {
   display: none;
   width: 100%;
   z-index: 100000;
   background-color: red;
   height: 100px;
-}
-#Logout {
+ }
+ #Logout {
   display: flex;
   justify-content: center;
   align-items: center;
-}
-/*todo ----------------------------Small Screen Sizes -------------------------------- */
-@media all and (min-width: 200px) and (max-width: 809px) {
+ }
+ /*todo ----------------------------Small Screen Sizes -------------------------------- */
+ @media all and (min-width: 200px) and (max-width: 809px) {
   #spinner {
     display: none;
     /* display: block; */
@@ -60,4 +60,5 @@ input {
   #orangegoogle > div > img {
     width: 100px !important;
   }
-}
+ }
+ 

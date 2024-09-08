@@ -11,17 +11,15 @@
 </head>
 <body>
 
-
-<!-- Навигация -->
 <!-- Навигация -->
 <nav class="navbar">
     <div class="navbar-logo">
-      <img src="static/img/img.png" alt="Site Icon" class="navbar-icon"> <!-- Иконка сайта -->
+      <img src="static/img/logo.png" alt="Site Icon" class="navbar-icon"> <!-- Иконка сайта -->
       <a href="/" class="navbar-logo-text">BookShelf</a> <!-- Цвет текста изменен на синий -->
     </div>
     <ul class="navbar-links">
       <li>
-        <a href="/" class="nav-link home active">
+        <a href="/index" class="nav-link home active">
           <span>Home</span>
         </a>
       </li>
@@ -36,8 +34,8 @@
         </a>
       </li>
       <li>
-        <a href="/contact" class="nav-link contact">
-          <span>Contact</span>
+        <a href="/create" class="nav-link contact">
+          <span>Create Post</span>
         </a>
       </li>
       <li>
@@ -47,9 +45,6 @@
             alt="User Avatar"
           />
           <div class="navbar-dropdown">
-            <a href="/profile">Profile</a>
-            <a href="/matches">Matches</a>
-            <a href="/reservations">Reservations</a>
             <a href="/logout">Logout</a>
           </div>
         </div>
@@ -61,6 +56,7 @@
       <span class="navbar-toggle-icon"></span>
     </div>
   </nav>
+  <hr />
 
 <!-- Контейнер -->
 <div class="container">
@@ -70,8 +66,10 @@
 
       <!-- All Posts Section -->
       <h1>All Posts</h1>
-      <a href="{{ url_for('create') }}">Create New Post</a>
-      <a href="{{ url_for('liked_posts') }}">View Liked Posts</a>
+      <div class="posts-buttons">
+        <a href="{{ url_for('create') }}" class="btn">Create New Post</a>
+        <a href="{{ url_for('liked_posts') }}" class="btn">View Liked Posts</a>
+      </div>
 
 
       <!-- Все посты -->
@@ -79,7 +77,7 @@
           {% for post in posts %}
           <div class="post">
               <div class="post-top">
-                  <div class="dp"><img src="{{ post.user_dp_url or 'images/default_dp.jpg' }}" alt="User"></div>
+                  <div class="dp"><img src="{{ post.user_dp_url or 'https://avatar.iran.liara.run/public/boy?username=jafar' }}" alt="User"></div>
                   <div class="post-info">
                       <div class="name">{{ post.username }}</div>
                       <div class="time">{{ post.created_at_str }}</div>
@@ -109,6 +107,30 @@
   </div>
 </div>
 
+<script>
+    // JavaScript для управления поведением меню
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleButton = document.querySelector('.navbar-toggle');
+      const navbarLinks = document.querySelector('.navbar-links');
+      const avatar = document.querySelector('.navbar-avatar');
+      const dropdown = document.querySelector('.navbar-dropdown');
+    
+    
+    
+    
+      toggleButton.addEventListener('click', () => {
+        navbarLinks.classList.toggle('open');
+      });
+    
+    
+    
+    
+      avatar.addEventListener('click', () => {
+        dropdown.classList.toggle('open');
+      });
+    });
+</script>
+    
 
 </body>
 </html>
