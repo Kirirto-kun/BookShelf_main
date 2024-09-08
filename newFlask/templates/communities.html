@@ -3,13 +3,66 @@
 <head>
     <meta charset="utf-8">
     <title>Communities</title>
+    <link rel="stylesheet" href="static\css\main.css">
+    <link rel="stylesheet" href="static\css\communities.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
 </head>
 <body>
-    <h1>Communities</h1>
-    <a href="{{ url_for('create_community') }}">Create New Community</a>
-    <ul>
+    <!-- Навигация -->
+<nav class="navbar">
+    <div class="navbar-logo">
+      <a href="/" class="navbar-logo-text">BookShelf</a> <!-- Цвет текста изменен на синий -->
+    </div>
+    <ul class="navbar-links">
+      <li>
+        <a href="/" class="nav-link home">
+          <span>Home</span>
+        </a>
+      </li>
+      <li>
+        <a href="/communities" class="nav-link findbook active">
+          <span>Community</span>
+        </a>
+      </li>
+      <li>
+        <a href="/calendar" class="nav-link services">
+          <span>Calendly</span>
+        </a>
+      </li>
+      <li>
+        <a href="/contact" class="nav-link contact">
+          <span>Contact</span>
+        </a>
+      </li>
+      <li>
+        <div class="navbar-avatar">
+          <img
+            src="https://avatar.iran.liara.run/public/boy?username=username"
+            alt="User Avatar"
+          />
+          <div class="navbar-dropdown">
+            <a href="/profile">Profile</a>
+            <a href="/matches">Matches</a>
+            <a href="/reservations">Reservations</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+      </li>
+    </ul>
+    <div class="navbar-toggle">
+      <span class="navbar-toggle-icon"></span>
+      <span class="navbar-toggle-icon"></span>
+      <span class="navbar-toggle-icon"></span>
+    </div>
+  </nav>
+  <div class="communities-container">
+    <div class="create-as">
+        <a href="{{ url_for('create_community') }}" class="create-a" style="text-decoration: none; ">Create New Community</a>
+    </div>
+
+    <ul class="ul-content">
         {% for community in communities %}
-            <li>
+            <li class="li">
                 <h3>{{ community.name }}</h3>
                 <p>{{ community.description }}</p>
 
@@ -25,6 +78,6 @@
             </li>
         {% endfor %}
     </ul>
-    <a href="{{ url_for('index') }}">Back to All Posts</a>
+  </div>
 </body>
 </html>

@@ -6,31 +6,61 @@
   <title>BS Social Media</title>
   <link rel="stylesheet" href="static/css/main.css">
   <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
 
 
 <!-- Навигация -->
-<nav>
-  <div class="nav-left">
-      <img src="static/img/img.png" alt="Logo">
-      <input type="text" placeholder="Search">
-  </div>
-  <div class="nav-middle">
-      <a href="#" class="active"><i class="fas fa-home"><p>Home</p></i></a>
-      <a href="{{ url_for('calendar') }}"><i class="fas fa-calendar-week"></i> <p>Events</p></a>
-      <a href="{{ url_for('communities') }}"><i class="fas fa-briefcase"></i> <p>Community</p></a>
-      <a href="{{ url_for('create') }}"><i class="fas fa-star"></i> <p>Create post</p></a>
-      <a href="{{ url_for('messages_page') }}">Messages</a>
-
-  </div>
-  <div class="nav-right">
-      <div class="profile"></div>
-      <a href="{{ url_for('logout') }}"><i class="fas fa-cog"></i><p>Logout</p></a>
-  </div>
-</nav>
-
+<!-- Навигация -->
+<nav class="navbar">
+    <div class="navbar-logo">
+      <img src="static/img/img.png" alt="Site Icon" class="navbar-icon"> <!-- Иконка сайта -->
+      <a href="/" class="navbar-logo-text">BookShelf</a> <!-- Цвет текста изменен на синий -->
+    </div>
+    <ul class="navbar-links">
+      <li>
+        <a href="/" class="nav-link home active">
+          <span>Home</span>
+        </a>
+      </li>
+      <li>
+        <a href="/communities" class="nav-link findbook">
+          <span>Community</span>
+        </a>
+      </li>
+      <li>
+        <a href="/calendar" class="nav-link services">
+          <span>Calendly</span>
+        </a>
+      </li>
+      <li>
+        <a href="/contact" class="nav-link contact">
+          <span>Contact</span>
+        </a>
+      </li>
+      <li>
+        <div class="navbar-avatar">
+          <img
+            src="https://avatar.iran.liara.run/public/boy?username=username"
+            alt="User Avatar"
+          />
+          <div class="navbar-dropdown">
+            <a href="/profile">Profile</a>
+            <a href="/matches">Matches</a>
+            <a href="/reservations">Reservations</a>
+            <a href="/logout">Logout</a>
+          </div>
+        </div>
+      </li>
+    </ul>
+    <div class="navbar-toggle">
+      <span class="navbar-toggle-icon"></span>
+      <span class="navbar-toggle-icon"></span>
+      <span class="navbar-toggle-icon"></span>
+    </div>
+  </nav>
 
 <!-- Контейнер -->
 <div class="container">
