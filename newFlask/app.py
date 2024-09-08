@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -91,7 +91,73 @@ def calendar():
         events_list.append(event_data)
 
     return render_template('calendar.html', events=events_list)
+@app.route("/users")
+@login_required
+def get_users():
+    try:
+        users_ref = db.collection('users')
+        users = [user.to_dict() for user in users_ref.stream()]
+        return jsonify(users)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+
+@app.route('/search_users', methods=['GET'])
+def search_users():
+    username = request.args.get('username')
+    if not username:
+        return jsonify([])  # Возвращаем пустой список при отсутствии имени пользователя
+
+    users = db.collection('users').where('username', '==', username).get()
+    user_list = [{'userId': user.id, 'username': user.to_dict()['username']} for user in users]
+
+    return jsonify(user_list)
+
+
+@app.route("/messages/<user_id>")
+@login_required
+def get_messages(user_id):
+    try:
+        current_user_id = session.get('user_id', '')
+        messages_ref = db.collection('messages').document(current_user_id).collection('chats').document(user_id)
+        messages = [msg.to_dict() for msg in messages_ref.collection('messages').stream()]
+        return jsonify(messages)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route("/send_message", methods=['POST'])
+@login_required
+def send_message():
+    try:
+        data = request.json
+        from_user = session.get('user_id', '')
+        to_user = data['to_user']
+        message_text = data['message']
+
+        # Сохранение сообщения с временной меткой в обеих коллекциях чатов
+        messages_ref = db.collection('messages').document(from_user).collection('chats').document(to_user)
+        messages_ref.collection('messages').add({
+            'from_user': from_user,
+            'message': message_text,
+            'timestamp': firestore.SERVER_TIMESTAMP  # Добавляем время отправки
+        })
+
+        messages_ref = db.collection('messages').document(to_user).collection('chats').document(from_user)
+        messages_ref.collection('messages').add({
+            'from_user': from_user,
+            'message': message_text,
+            'timestamp': firestore.SERVER_TIMESTAMP  # Добавляем время отправки
+        })
+
+        return jsonify({'status': 'Message sent successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/messages")
+@login_required
+def messages_page():
+    return render_template('messages.html')
 
 @app.route('/liked_posts')
 @login_required
@@ -118,6 +184,7 @@ def liked_posts():
 
 
 @app.route("/about")
+@login_required
 def about():
     return render_template('about.html')
 

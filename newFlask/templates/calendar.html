@@ -43,6 +43,50 @@
     </style>
 </head>
 <body>
+    <nav class="navbar"></nav>
+        <div class="navbar-logo">
+            <a href="/">BookShelf</a>
+        </div>
+        <ul class="navbar-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/findbook">FindBook</a></li>
+            <li><a href="/services">Services</a></li>
+            <li><a href="/contact">Contact</a></li>
+            <li>
+                <div class="navbar-avatar" onclick="toggleDropdown()">
+                    <img src="https://avatar.iran.liara.run/public/boy?username=username" alt="User Avatar" id="user-avatar" />
+                    <div class="navbar-dropdown" id="dropdown" style="display: none;">
+                        <a href="/profile">Profile</a>
+                        <a href="/matches">Matches</a>
+                        <a href="/reservations">Reservations</a>
+                        <a href="/logout">Logout</a>
+                    </div>
+                </div>
+            </li>
+        </ul>
+        <div class="navbar-toggle" onclick="toggleMenu()">
+            <span class="navbar-toggle-icon"></span>
+            <span class="navbar-toggle-icon"></span>
+            <span class="navbar-toggle-icon"></span>
+        </div>
+    </nav>
+
+    <script>
+        let isOpen = false;
+        let isDropdownOpen = false;
+
+        function toggleMenu() {
+            const links = document.querySelector('.navbar-links');
+            isOpen = !isOpen;
+            links.classList.toggle('open', isOpen);
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dropdown');
+            isDropdownOpen = !isDropdownOpen;
+            dropdown.style.display = isDropdownOpen ? 'block' : 'none';
+        }
+    </script>
     <h1>Calendar</h1>
     <div id="calendar"></div>
 

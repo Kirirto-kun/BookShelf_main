@@ -1,0 +1,36 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+#users-list {
+    list-style: none;
+    padding: 0;
+}
+
+#users-list li {
+    cursor: pointer;
+    padding: 5px;
+    border: 1px solid #ddd;
+    margin: 2px 0;
+}
+
+#users-list li:hover {
+    background-color: #f0f0f0;
+}
+
+#chat-box {
+    border: 1px solid #ddd;
+    padding: 10px;
+    height: 300px;
+    overflow-y: scroll;
+    margin-bottom: 10px;
+}
+
+#message-input {
+    width: 70%;
+    padding: 10px;
+}
+
+button {
+    padding: 10px;
+}
