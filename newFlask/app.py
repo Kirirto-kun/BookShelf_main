@@ -11,10 +11,10 @@ firebase_admin.initialize_app(cred, {
     'storageBucket': 'bs-hack1.appspot.com'  # Замените на имя вашего бакета
 })
 db = firestore.client()
-bucket = storage.bucket()  # Получаем ссылку на хранилище
+bucket = storage.bucket()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'  # Вы должны изменить это на случайный секретный ключ
+app.config['SECRET_KEY'] = 'your_secret_key'
 
 def login_required(f):
     @wraps(f)
@@ -364,31 +364,42 @@ def comments(post_id):
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        full_name = request.form['full_name']
-        phone_number = request.form['phone_number']
-        rank = request.form['rank']
-        pfp_url = request.form['pfp_url']
-        email = request.form['email']
-        username = request.form['username']
-        password = request.form['password']
-        gender = request.form.get('gender') == 'true'
-        role = request.form.get('role', 'user')
+        # Parse JSON data
+        data = request.get_json()
+
+        full_name = data['full_name']
+        email = data['email']
+        username = data['username']
+        password = data['password']
+        pfp_url = data.get('pfp_url', '')
+        rank = data.get('rank', 'Newbie')
+
         hashed_password = generate_password_hash(password)
 
         # Create a new document with a unique ID
         user_ref = db.collection('users').document()
-        user_ref.set({
+        user_data = {
             'full_name': full_name,
-            'phone_number': phone_number,
             'rank': rank,
             'pfp_url': pfp_url,
             'email': email,
             'username': username,
             'password': hashed_password,
-            'gender': gender,
-            'role': role,
-            'userId': user_ref.id
-        })
+            'userId': user_ref.id,
+            'number_of_participations': 0,
+            'number_of_creations': 0,
+            'points': 0,
+            'recommend': {
+                "Развлечения": 0.16,
+                "Образование и мастер-классы": 0.16,
+                "Музыка и концерты": 0.16,
+                "Еда и напитки": 0.16,
+                "Ярмарки и выставки": 0.16,
+                "Кино и театр": 0.16
+            }
+        }
+
+        user_ref.set(user_data)
 
         # Store userId and username in session
         session['user_id'] = user_ref.id
@@ -398,30 +409,38 @@ def register():
     
     return render_template('register.html')
 
+
+from flask import request, jsonify
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        # Retrieve data from JSON
+        data = request.get_json()
+
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return jsonify({'error': 'Missing username or password'}), 400
 
         # Fetch user from Firestore
         users_ref = db.collection('users').where('username', '==', username).limit(1).get()
         if users_ref:
             user_doc = users_ref[0]
             user_data = user_doc.to_dict()
-            
-            
-            
+
+            # Check if the password matches
             if check_password_hash(user_data['password'], password):
-                # Store userId, username, and email in session
+                # Store userId and username in session
                 session['user_id'] = user_data['userId']
                 session['username'] = username
-                return redirect('/index')
+                return jsonify({'redirect': '/index'})
             else:
-                return 'Invalid credentials or missing email field', 401
+                return jsonify({'error': 'Invalid credentials'}), 401
         else:
-            return 'User not found', 404
-    
+            return jsonify({'error': 'User not found'}), 404
+
     return render_template('login.html')
 
 
@@ -588,12 +607,193 @@ def add_events():
 
 
 
+@app.route('/like_event/<category>', methods=['POST'])
+def like_category(category):
+    user_id = session.get('user_id')
+    if not user_id:
+        return {'error': 'User not logged in'}, 401
+
+    user_ref = db.collection('users').document(user_id)
+    user = user_ref.get()
+
+    if not user.exists:
+        return {'error': 'User not found'}, 404
+
+    user_data = user.to_dict()
+    recommend = user_data.get('recommend', {})
+    
+    if category not in recommend:
+        return {'error': 'Category not found'}, 400
+
+    # Изменение значений категорий
+    increment_value = 0.05
+    decrement_value = increment_value / (len(recommend) - 1)
+    
+    for cat in recommend:
+        if cat == category:
+            recommend[cat] += increment_value
+        else:
+            recommend[cat] -= decrement_value
+
+        # Ограничиваем значения в пределах [0, 1]
+        recommend[cat] = max(0, min(1, recommend[cat]))
+
+    user_ref.update({'recommend': recommend})
+    
+    return {'message': f'Liked category {category}', 'recommend': recommend}
+
+@app.route('/dislike_event/<category>', methods=['POST'])
+def dislike_category(category):
+    user_id = session.get('user_id')
+    if not user_id:
+        return {'error': 'User not logged in'}, 401
+
+    user_ref = db.collection('users').document(user_id)
+    user = user_ref.get()
+
+    if not user.exists:
+        return {'error': 'User not found'}, 404
+
+    user_data = user.to_dict()
+    recommend = user_data.get('recommend', {})
+    
+    if category not in recommend:
+        return {'error': 'Category not found'}, 400
+
+    # Изменение значений категорий
+    decrement_value = 0.05
+    increment_value = decrement_value / (len(recommend) - 1)
+    
+    for cat in recommend:
+        if cat == category:
+            recommend[cat] -= decrement_value
+        else:
+            recommend[cat] += increment_value
+
+        # Ограничиваем значения в пределах [0, 1]
+        recommend[cat] = max(0, min(1, recommend[cat]))
+
+    user_ref.update({'recommend': recommend})
+    
+    return {'message': f'Disliked category {category}', 'recommend': recommend}
 
 
 
 
+import random
+
+@app.route('/recommend_events', methods=['GET'])
+def recommend_events():
+    user_id = session.get('user_id')
+    if not user_id:
+        return {'error': 'User not logged in'}, 401
+
+    # Получаем данные пользователя
+    user_ref = db.collection('users').document(user_id)
+    user = user_ref.get()
+
+    if not user.exists:
+        return {'error': 'User not found'}, 404
+
+    user_data = user.to_dict()
+    recommend = user_data.get('recommend', {})
+
+    if not recommend:
+        return {'error': 'No preferences found for user'}, 400
+
+    # Сортируем категории по убыванию предпочтений
+    sorted_categories = sorted(recommend.items(), key=lambda x: x[1], reverse=True)
+    top_categories = [category for category, _ in sorted_categories]
+
+    # Получаем все события
+    events_ref = db.collection('events_main')
+    all_events = events_ref.stream()
+
+    # Фильтруем события по категориям
+    events_by_category = {category: [] for category in top_categories}
+    all_categories = set()  # Список всех категорий, встречающихся в событиях
+    for event in all_events:
+        event_data = event.to_dict()
+        category = event_data.get('category')
+
+        if category in events_by_category:
+            events_by_category[category].append(event_data)
+        all_categories.add(category)
+
+    # Собираем 5 случайных событий с предпочтением на топовые категории
+    recommended_events = []
+    # Сначала добавляем события из топовых категорий
+    for category in top_categories:
+        if len(recommended_events) >= 5:
+            break
+
+        category_events = events_by_category[category]
+        if category_events:
+            random.shuffle(category_events)  # Перемешиваем события категории
+            recommended_events.extend(category_events[:5 - len(recommended_events)])  # Добавляем до 5 событий
+
+    # Если осталось место, добавляем случайные события из других категорий
+    if len(recommended_events) < 5:
+        remaining_categories = list(all_categories - set(top_categories))
+        random.shuffle(remaining_categories)  # Перемешиваем остальные категории
+        for category in remaining_categories:
+            if len(recommended_events) >= 5:
+                break
+            category_events = events_by_category.get(category, [])
+            random.shuffle(category_events)  # Перемешиваем события категории
+            recommended_events.extend(category_events[:5 - len(recommended_events)])  # Добавляем до 5 событий
+
+    return {'recommended_events': recommended_events}
 
 
+
+
+from datetime import datetime, timedelta
+from flask import request, jsonify
+import random
+
+@app.route('/event-by-time', methods=['POST'])
+def event_by_time():
+    # Получаем дату из запроса
+    data = request.get_json()
+    if 'date' not in data:
+        return jsonify({'error': 'Date is required'}), 400
+
+    # Преобразуем строку в объект datetime
+    try:
+        base_date = datetime.strptime(data['date'], "%d.%m.%Y")
+    except ValueError:
+        return jsonify({'error': 'Invalid date format. Use DD.MM.YYYY'}), 400
+
+    # Вычисляем диапазон дат: от 5 до 12 декабря
+    start_date = base_date - timedelta(days=7)  # 7 дней назад
+    end_date = base_date  # до заданной даты
+
+    # Получаем события из базы данных
+    events_ref = db.collection('events_main')
+    all_events = events_ref.stream()
+
+    # Фильтруем события по дате
+    filtered_events = []
+    for event in all_events:
+        event_data = event.to_dict()
+        event_date_str = event_data.get('date')
+        try:
+            event_date = datetime.strptime(event_date_str, "%d.%m.%Y")
+        except ValueError:
+            continue  # Пропускаем событие, если дата невалидна
+
+        # Проверяем, попадает ли событие в нужный диапазон
+        if start_date <= event_date <= end_date:
+            filtered_events.append(event_data)
+
+    # Сортируем события по дате
+    filtered_events.sort(key=lambda x: datetime.strptime(x['date'], "%d.%m.%Y"))
+
+    # Ограничиваем количество событий до 5
+    recommended_events = filtered_events[:5]
+
+    return jsonify({'events': recommended_events})
 
 
 
