@@ -566,6 +566,38 @@ def leave_community(community_id):
 
     return redirect(url_for('communities'))
 
+
+@app.route('/add_events', methods=['POST'])
+def add_events():
+    # Получаем список событий из тела запроса
+    events = request.json.get('events', [])
+    
+    # Проверяем, что список не пустой
+    if not events:
+        return jsonify({"success": False, "message": "Список событий пустой!"}), 400
+
+    # Ссылка на коллекцию
+    event_ref = db.collection('events_main')
+
+    # Добавляем события в Firestore
+    for event in events:
+        event_ref.add(event)
+
+    return jsonify({"success": True, "message": f"Добавлено {len(events)} событий."}), 200
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True)
-
