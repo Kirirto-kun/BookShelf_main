@@ -796,6 +796,71 @@ def event_by_time():
     return jsonify({'events': recommended_events})
 
 
+import requests
+from flask import request, jsonify
+import json
+# Константы для подключения к Azure OpenAI
+AZURE_API_URL = "https://ai-jafarman20072174ai473877890883.cognitiveservices.azure.com/openai/deployments/gpt-4o-2/chat/completions?api-version=2024-08-01-preview"
+AZURE_API_KEY = "AS6k4TYveS8ZScDAFA7KBZ9Wbibno6ffOg2SBzzQYoHLLRVTQ5C0JQQJ99AJACYeBjFXJ3w3AAAAACOGNwbs"
+
+@app.route('/recommend_events_by_prompt', methods=['POST'])
+def recommend_events_by_prompt():
+    # Получение промта от пользователя
+    data = request.get_json()
+    user_prompt = data.get('prompt')
+    if not user_prompt:
+        return jsonify({'error': 'Prompt is required'}), 400
+
+    # Извлечение всех событий из коллекции events_main
+    events_ref = db.collection('events_main')
+    all_events = [event.to_dict() for event in events_ref.stream()]
+
+    if not all_events:
+        return jsonify({'error': 'No events found'}), 404
+
+    # Формирование данных для GPT-4
+    prompt_data = {
+        "user_prompt": user_prompt,
+        "events": all_events
+    }
+    # print(prompt_data)
+    # Формирование тела запроса к Azure OpenAI
+    azure_payload = {
+        "messages": [
+            {"role": "system", "content": "тебе предоставлен запрос человека и все ивенты из базы данных. Тебе надо скинуть только текст в формате json какие ивенты подходят! НИЧЕГО ЛИШНЕГО ПРОСТО ФОРМАТ JSON ЧТО БЫ Я ПРОСТО ВСТАВИЛ"},
+            {"role": "user", "content": f"Here is the data:\n{prompt_data}"}
+        ],
+        "max_tokens": 500,
+        "temperature": 0.7
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "api-key": AZURE_API_KEY
+    }
+
+    # Отправка запроса к Azure OpenAI
+    # Отправка запроса к Azure OpenAI
+    try:
+        response = requests.post(AZURE_API_URL, headers=headers, json=azure_payload)
+        response.raise_for_status()
+        recommendations_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+        print(response.text)
+        # Удаление обрамляющего ```json и приведение к чистому JSON
+        if recommendations_text.startswith('```json') and recommendations_text.endswith('```'):
+            recommendations_text = recommendations_text[7:-3].strip()
+
+        # Конвертация в JSON
+        recommendations_json = json.loads(recommendations_text)
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Failed to decode JSON from GPT response'}), 500
+    except requests.RequestException as e:
+        return jsonify({'error': f"Failed to get recommendations: {str(e)}"}), 500
+
+    # Возврат ответа
+    return jsonify({'recommendations': recommendations_json})
+
+
 
 
 
