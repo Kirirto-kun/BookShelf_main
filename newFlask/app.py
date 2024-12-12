@@ -6,7 +6,7 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 
 # Инициализация Firebase
-cred = credentials.Certificate('bs-hack1-firebase-adminsdk-glq41-85d5b66367.json')  # Замените на путь к вашему JSON-файлу
+cred = credentials.Certificate('bs-hack1-firebase-adminsdk-glq41-35fd486e64.json')  # Замените на путь к вашему JSON-файлу
 firebase_admin.initialize_app(cred, {
     'storageBucket': 'bs-hack1.appspot.com'  # Замените на имя вашего бакета
 })
@@ -429,11 +429,6 @@ def login():
 def logout():
     session.pop('user_id', None)
     return redirect('/login')
-
-
-
-
-
 
 
 
