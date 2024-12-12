@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore, storage
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from werkzeug.utils import secure_filename
+from flask_cors import CORS
 
 # Инициализация Firebase
 cred = credentials.Certificate('bs-hack1-firebase-adminsdk-glq41-35fd486e64.json')  # Замените на путь к вашему JSON-файлу
@@ -15,6 +16,8 @@ bucket = storage.bucket()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
+
+CORS(app)
 
 def login_required(f):
     @wraps(f)
@@ -418,7 +421,7 @@ def login():
         # Retrieve data from JSON
         data = request.get_json()
 
-        username = data.get('username')
+        username = data.get('email')
         password = data.get('password')
 
         if not username or not password:
@@ -609,9 +612,7 @@ def add_events():
 
 @app.route('/like_event/<category>', methods=['POST'])
 def like_category(category):
-    user_id = session.get('user_id')
-    if not user_id:
-        return {'error': 'User not logged in'}, 401
+    user_id = 'ylROSeQ4bFokOQV8hRJG'
 
     user_ref = db.collection('users').document(user_id)
     user = user_ref.get()
@@ -644,9 +645,7 @@ def like_category(category):
 
 @app.route('/dislike_event/<category>', methods=['POST'])
 def dislike_category(category):
-    user_id = session.get('user_id')
-    if not user_id:
-        return {'error': 'User not logged in'}, 401
+    user_id = 'ylROSeQ4bFokOQV8hRJG'
 
     user_ref = db.collection('users').document(user_id)
     user = user_ref.get()
@@ -684,9 +683,8 @@ import random
 
 @app.route('/recommend_events', methods=['GET'])
 def recommend_events():
-    user_id = session.get('user_id')
-    if not user_id:
-        return {'error': 'User not logged in'}, 401
+    user_id = 'ylROSeQ4bFokOQV8hRJG'
+
 
     # Получаем данные пользователя
     user_ref = db.collection('users').document(user_id)
