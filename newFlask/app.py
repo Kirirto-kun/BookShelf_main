@@ -382,6 +382,7 @@ def register():
         # Create a new document with a unique ID
         user_ref = db.collection('users').document()
         user_data = {
+            'id': 'ylROSeQ4bFokOQV8hRJG',  # This should ideally be user_ref.id, but you use a fixed ID here
             'full_name': full_name,
             'rank': rank,
             'pfp_url': pfp_url,
@@ -392,6 +393,18 @@ def register():
             'number_of_participations': 0,
             'number_of_creations': 0,
             'points': 0,
+            'creations': [
+                {
+                    'createdAt': None,  # Replace with actual timestamp when available
+                    'event_id': None,   # Replace with actual event ID when available
+                }
+            ],
+            'participation': [
+                {
+                    'visitedAt': None,  # Replace with actual timestamp when available
+                    'event_id': None,   # Replace with actual event ID when available
+                }
+            ],
             'recommend': {
                 "Развлечения": 0.16,
                 "Образование и мастер-классы": 0.16,
@@ -402,6 +415,7 @@ def register():
             }
         }
 
+        # Save user data to Firestore
         user_ref.set(user_data)
 
         # Store userId and username in session
@@ -437,6 +451,7 @@ def login():
             if check_password_hash(user_data['password'], password):
                 # Store userId and username in session
                 session['user_id'] = user_data['userId']
+                print(user_data['userId'])
                 session['username'] = username
                 return jsonify({'redirect': '/index'})
             else:
@@ -612,7 +627,7 @@ def add_events():
 
 @app.route('/like_event/<category>', methods=['POST'])
 def like_category(category):
-    user_id = 'ylROSeQ4bFokOQV8hRJG'
+    user_id = 'bOEYgRcegotVmGQx0pJR'
 
     user_ref = db.collection('users').document(user_id)
     user = user_ref.get()
@@ -645,7 +660,7 @@ def like_category(category):
 
 @app.route('/dislike_event/<category>', methods=['POST'])
 def dislike_category(category):
-    user_id = 'ylROSeQ4bFokOQV8hRJG'
+    user_id = 'bOEYgRcegotVmGQx0pJR'
 
     user_ref = db.collection('users').document(user_id)
     user = user_ref.get()
@@ -683,7 +698,7 @@ import random
 
 @app.route('/recommend_events', methods=['GET'])
 def recommend_events():
-    user_id = 'ylROSeQ4bFokOQV8hRJG'
+    user_id = 'bOEYgRcegotVmGQx0pJR'
 
 
     # Получаем данные пользователя
@@ -793,6 +808,35 @@ def event_by_time():
 
     return jsonify({'events': recommended_events})
 
+@app.route('/user/me', methods=['GET'])
+def get_my_info():
+    users_ref = db.collection('users')
+
+    user_doc = users_ref.document('bOEYgRcegotVmGQx0pJR').get()
+
+    if user_doc.exists:
+        # If the user is found, return user data
+        return jsonify(user_doc.to_dict()), 200
+    else:
+        # If user doesn't exist
+        return jsonify({"error": "User not found"}), 404
+
+@app.route('/events', methods=['GET'])
+def all_events_sorted_by_category():
+    events_ref = db.collection('events_main')
+    all_events = events_ref.stream()
+    
+    categorized_events = {}
+    for event in all_events:
+        event_dict = event.to_dict()
+        event_dict['id'] = event.id
+        category = event_dict.get('category', 'Uncategorized')  # Default category if none is set
+        if category not in categorized_events:
+            categorized_events[category] = []
+        categorized_events[category].append(event_dict)
+    
+    return jsonify(categorized_events), 200
+
 
 import requests
 from flask import request, jsonify
@@ -821,11 +865,11 @@ def recommend_events_by_prompt():
         "user_prompt": user_prompt,
         "events": all_events
     }
-    # print(prompt_data)
+
     # Формирование тела запроса к Azure OpenAI
     azure_payload = {
         "messages": [
-            {"role": "system", "content": "тебе предоставлен запрос человека и все ивенты из базы данных. Тебе надо скинуть только текст в формате json какие ивенты подходят! НИЧЕГО ЛИШНЕГО ПРОСТО ФОРМАТ JSON ЧТО БЫ Я ПРОСТО ВСТАВИЛ"},
+            {"role": "system", "content": "тебе предоставлен запрос человека и все ивенты из базы данных. Тебе надо скинуть только текст в формате [id1, id2, ...], где айди это айди ивентов которые подходят! НИЧЕГО ЛИШНЕГО"},
             {"role": "user", "content": f"Here is the data:\n{prompt_data}"}
         ],
         "max_tokens": 500,
@@ -837,29 +881,172 @@ def recommend_events_by_prompt():
         "api-key": AZURE_API_KEY
     }
 
-    # Отправка запроса к Azure OpenAI
-    # Отправка запроса к Azure OpenAI
     try:
         response = requests.post(AZURE_API_URL, headers=headers, json=azure_payload)
         response.raise_for_status()
         recommendations_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-        print(response.text)
-        # Удаление обрамляющего ```json и приведение к чистому JSON
-        if recommendations_text.startswith('```json') and recommendations_text.endswith('```'):
-            recommendations_text = recommendations_text[7:-3].strip()
+        print(recommendations_text)
 
-        # Конвертация в JSON
-        recommendations_json = json.loads(recommendations_text)
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Failed to decode JSON from GPT response'}), 500
+        # Преобразование строки в список
+        try:
+            recommendations_json = json.loads(recommendations_text)
+        except json.JSONDecodeError:
+            return jsonify({'error': 'Failed to parse recommendations as JSON'}), 500
+
     except requests.RequestException as e:
         return jsonify({'error': f"Failed to get recommendations: {str(e)}"}), 500
 
-    # Возврат ответа
-    return jsonify({'recommendations': recommendations_json})
+    # Достаём ивенты по айдишникам
+    recommended_events = []
+    for event_id in recommendations_json:
+        event = next((e for e in all_events if e['id'] == event_id), None)
+        if event:
+            recommended_events.append(event)
+
+    # Возврат ответа с рекомендованными ивентами
+    return jsonify({'recommendations': recommended_events})
+
+@app.route('/delete_users', methods=['POST'])
+def delete_users():
+    try:
+        # Получаем ссылку на коллекцию 'users'
+        users_ref = db.collection('users')
+
+        # Получаем все документы из коллекции
+        docs = users_ref.stream()
+
+        # Удаляем каждый документ
+        for doc in docs:
+            doc.reference.delete()
+
+        return 'Коллекция users была удалена.', 200
+    except Exception as e:
+        return str(e), 500
+    
+
+from datetime import datetime
+from flask import request, flash
+
+@app.route("/create_real_event", methods=["GET", "POST"])
+def create_real_event():
+    if request.method == "POST":
+        # Получаем данные из формы
+        event_name = request.form.get("name")
+        description = request.form.get("description")
+        location = request.form.get("location")
+        price = request.form.get("price")
+        date = request.form.get("date")
+        category = request.form.get("category")
+
+        # Пример ID пользователя, которого вы хотите обновить
+        user_id = 'bOEYgRcegotVmGQx0pJR'
+
+        # Получаем ссылку на пользователя
+        user_ref = db.collection('users').document(user_id)
+
+        # Получаем текущие данные пользователя
+        user_data = user_ref.get().to_dict()
+
+        # Создаем событие в events_main
+        events_ref = db.collection('events_main')
+        event_ref = events_ref.add({
+            'url': 'https://cdn.britannica.com/38/196638-050-94E05EF4/Santa-Claus.jpg',
+            'name': event_name,
+            'location': location,
+            'price': price,
+            'description': description,
+            'date': date,
+            'time': '14:00',
+            'category': category
+        })
+
+        # Получаем ID события
+        event_id = event_ref[1].id  # event_ref returns a tuple; use the second element for the ID
+
+        # Форматируем дату
+        formatted_date = datetime.now().strftime('%d-%m-%Y')
+
+        # Обновляем список "creations" пользователя
+        if user_data:
+            creations = user_data.get('creations', [])
+            creations.append({
+                'createdAt': formatted_date,  # Добавляем временную метку
+                'event_id': event_id,  # Используем реальный event_id
+            })
+
+            user_ref.update({
+                'creations': creations
+            })
+
+        flash("Event created successfully!")
+    return "Form submitted"  # Adjust as needed (e.g., redirect to another page)
+
+@app.route("/get_user_events", methods=["GET"])
+def get_user_events():
+    user_id = 'bOEYgRcegotVmGQx0pJR'
+    try:
+        # Получаем данные пользователя
+        user_ref = db.collection('users').document(user_id)
+        user_data = user_ref.get().to_dict()
+
+        if not user_data:
+            return jsonify({"error": "User not found"}), 404
+
+        # Получаем список созданных событий
+        creations = user_data.get('creations', [])
+        event_ids = [creation.get('event_id') for creation in creations if 'event_id' in creation]
+
+        # Получаем данные всех событий из коллекции events_main
+        events_ref = db.collection('events_main')
+        events = []
+
+        for event_id in event_ids:
+            event_doc = events_ref.document(event_id).get()
+            if event_doc.exists:
+                events.append({"id": event_id, **event_doc.to_dict()})
+
+        return jsonify({"user_id": user_id, "events": events})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
+@app.route("/delete_last_event", methods=["POST"])
+def delete_last_event():
+    # Пример ID пользователя, которого вы хотите обновить
+    user_id = 'bOEYgRcegotVmGQx0pJR'
 
+    # Получаем ссылку на пользователя
+    user_ref = db.collection('users').document(user_id)
+
+    # Получаем текущие данные пользователя
+    user_data = user_ref.get().to_dict()
+
+    if user_data:
+        creations = user_data.get('creations', [])
+
+        if creations:
+            # Удаляем последний созданный ивент
+            last_event = creations.pop()  # Удаляем последний элемент
+            event_id = last_event.get('event_id')
+
+            # Обновляем список creations в документе пользователя
+            user_ref.update({
+                'creations': creations
+            })
+
+            # Удаляем связанный ивент из коллекции events_main
+            event_ref = db.collection('events_main').document(event_id)
+            if event_ref.get().exists:
+                event_ref.delete()
+
+            flash("Last event deleted successfully!")
+        else:
+            flash("No events to delete.")
+    else:
+        flash("User not found.")
+
+    return "Last event deleted"  # Настройте ответ (например, редирект на другую страницу)
 
 
 if __name__ == '__main__':
